@@ -127,9 +127,9 @@ class Hydro(object):
     
     # System params
     self.grid_points = kwargs.get('grid_points', 100)
-    self.max_iter = kwargs.get('max_iter', 100000)
+    self.max_iter = kwargs.get('max_iter', 1e5)
     self.integrator = kwargs.get('integrator', 'Lax-Friedrichs')
-    self.out_time = kwargs.get('out_time', 100000)
+    self.out_time = kwargs.get('out_time', 1e2)
     self.max_radius = kwargs.get('max_radius', 20.)
     self.int_epsilon = kwargs.get('int_epsilon', 0.5)
     self.int_tolerance = kwargs.get('int_tolerance', 1.e-10)
@@ -291,7 +291,7 @@ class Hydro(object):
   @property
   def t0(self):
     '''
-    Temperature scale factor. Default `250`.
+    Temperature at the lower boundary. Default `250`.
     
     '''
     return self._planet.dT0
@@ -510,11 +510,12 @@ class Hydro(object):
     ax = ax.flatten()
     title = fig.suptitle('Iteration 0', fontsize = 18)
     
-    # Plot the initial states
+    # Plot the initial and final states
     curve = [None for var in vars]
     for i, var in enumerate(vars):
-      ax[i].plot(self.radius[0], getattr(self, var)[0], 'r-', alpha = 0.2)
-      curve[i], = ax[i].plot(self.radius[0], getattr(self, var)[0], 'b-')
+      ax[i].plot(self.radius[0], getattr(self, var)[0], 'r-', alpha = 0.2, label = 'Initial')
+      ax[i].plot(self.radius[-1], getattr(self, var)[-1], 'b-', alpha = 0.2, label = 'Final')
+      curve[i], = ax[i].plot(self.radius[0], getattr(self, var)[0], 'k-')
       ax[i].set_xlim(self.radius[0].min(), self.radius[-1].max())
       ax[i].set_ylabel(labels[i], fontsize = 16)
       ax[i].set_xlabel(r'$R\ (\mathrm{R_\oplus})$', fontsize = 16)
@@ -528,6 +529,7 @@ class Hydro(object):
       ax[i].set_ylim(lo - pad, hi + pad)
       ax[i].set_xscale('log')
       ax[i].xaxis.set_major_formatter(ScalarFormatter())
+    ax[0].legend(loc = 'upper left', fontsize = 8)
     
     # Animate
     def updatefig(t):
