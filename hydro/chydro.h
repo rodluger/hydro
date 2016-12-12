@@ -48,6 +48,9 @@ typedef struct {
   double **dQ0;
   double **dQ1;
   double **dQ2;
+  double **dMVisc;
+  double **dPVisc;
+  double **dEVisc;
   double dMDot;
   double dRXUV;
 } OUTPUT;

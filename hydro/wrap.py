@@ -82,6 +82,9 @@ class OUTPUT(ctypes.Structure):
               ("dQ0", ctypes.POINTER(ctypes.POINTER(ctypes.c_double))),
               ("dQ1", ctypes.POINTER(ctypes.POINTER(ctypes.c_double))),
               ("dQ2", ctypes.POINTER(ctypes.POINTER(ctypes.c_double))),
+              ("dMVisc", ctypes.POINTER(ctypes.POINTER(ctypes.c_double))),
+              ("dPVisc", ctypes.POINTER(ctypes.POINTER(ctypes.c_double))),
+              ("dEVisc", ctypes.POINTER(ctypes.POINTER(ctypes.c_double))),
               ("dMDot", ctypes.c_double),
               ("dRXUV", ctypes.c_double)]
 
@@ -117,13 +120,13 @@ class Hydro(object):
     
     # Planet params
     self.mass = kwargs.get('mass', 1.)
-    self.r0 = kwargs.get('radius', 1.)
-    self.t0 = kwargs.get('temperature', 250.)
+    self.r0 = kwargs.get('r0', 1.)
+    self.t0 = kwargs.get('t0', 250.)
     self.gamma = kwargs.get('gamma', 5. / 3.)
     self.xuv_efficiency = kwargs.get('xuv_efficiency', 0.15)
     self.xuv_cross_section = kwargs.get('xuv_cross_section', 1.0e-18)
     self.xuv_flux = kwargs.get('xuv_flux', 100.)
-    self.number_density = kwargs.get('number_density', 5.0e12)
+    self.n0 = kwargs.get('n0', 5.0e12)
     
     # System params
     self.grid_points = kwargs.get('grid_points', 100)
@@ -172,7 +175,7 @@ class Hydro(object):
     '''
     
     if self._executed:
-      return np.array([[self._output.dRho[i][j] for j in range(self.grid_points)] for i in range(self._output.iOutputNum)])
+      return self.n0 * np.array([[self._output.dRho[i][j] for j in range(self.grid_points)] for i in range(self._output.iOutputNum)])
   
   @property
   def velocity(self):
@@ -262,6 +265,32 @@ class Hydro(object):
     '''
     
     return np.array([[self._output.dQ2[i][j] for j in range(self.grid_points)] for i in range(self._output.iOutputNum)])
+
+  @property
+  def mvisc(self):
+    '''
+    
+    '''
+    
+    if self._executed:
+      return np.array([[self._output.dMVisc[i][j] for j in range(self.grid_points)] for i in range(self._output.iOutputNum)])
+  
+  @property
+  def pvisc(self):
+    '''
+    
+    '''
+    
+    if self._executed:
+      return np.array([[self._output.dPVisc[i][j] for j in range(self.grid_points)] for i in range(self._output.iOutputNum)])
+  
+  @property
+  def evisc(self):
+    '''
+    
+    '''
+    
+    return np.array([[self._output.dEVisc[i][j] for j in range(self.grid_points)] for i in range(self._output.iOutputNum)])
   
   @property
   def mass(self):
@@ -349,15 +378,15 @@ class Hydro(object):
     self._planet.dFXUV = v * XUVEARTH
   
   @property
-  def number_density(self):
+  def n0(self):
     '''
     Number density at the lower boundary. Default `5e12`.
     
     '''
     return self._planet.dN0
   
-  @number_density.setter
-  def number_density(self, v):
+  @n0.setter
+  def n0(self, v):
     self._planet.dN0 = v
   
   @property
@@ -482,6 +511,9 @@ class Hydro(object):
       self._dbl_free(self._output.dQ0, self._output.iSize)
       self._dbl_free(self._output.dQ1, self._output.iSize)
       self._dbl_free(self._output.dQ2, self._output.iSize)
+      self._dbl_free(self._output.dMVisc, self._output.iSize)
+      self._dbl_free(self._output.dPVisc, self._output.iSize)
+      self._dbl_free(self._output.dEVisc, self._output.iSize)
   
   def __del__(self):
     '''
@@ -520,13 +552,6 @@ class Hydro(object):
       ax[i].set_ylabel(labels[i], fontsize = 16)
       ax[i].set_xlabel(r'$R\ (\mathrm{R_\oplus})$', fontsize = 16)
       ax[i].set_yscale(yscale[i])
-      lo = min(getattr(self, var)[0].min(), getattr(self, var)[-1].min())
-      hi = max(getattr(self, var)[0].max(), getattr(self, var)[-1].max())
-      if yscale[i] == 'log':
-        lo = np.log10(lo)
-        hi = np.log10(hi)
-      pad = 0.1 * (hi - lo)
-      ax[i].set_ylim(lo - pad, hi + pad)
       ax[i].set_xscale('log')
       ax[i].xaxis.set_major_formatter(ScalarFormatter())
     ax[0].legend(loc = 'upper left', fontsize = 8)

@@ -101,7 +101,9 @@ double fdInitT(double dR){
   return 1.;
 }
 
-void fvLaxFriedrichs(double dDt, double *daR, SYSTEM *SYS, PLANET *EARTH, double U_CURR[3][SYS->iNGrid], double G_CURR[3][SYS->iNGrid], double Q_CURR[3][SYS->iNGrid], double U_NEXT[3][SYS->iNGrid]){
+void fvLaxFriedrichs(double dDt, double *daR, SYSTEM *SYS, PLANET *EARTH, 
+                     double U_CURR[3][SYS->iNGrid], double G_CURR[3][SYS->iNGrid], 
+                     double Q_CURR[3][SYS->iNGrid], double U_NEXT[3][SYS->iNGrid]){
   // First order Lax-Friedrichs with numerical diffusion
   long int i;
   int k;
@@ -109,11 +111,11 @@ void fvLaxFriedrichs(double dDt, double *daR, SYSTEM *SYS, PLANET *EARTH, double
   double dGNumericPlus, dGNumericMinus;
   
   for(i=2;i<SYS->iNGrid-2;i++){
+    dDeltaR = (daR[i]-daR[i-1]);
+    dV = U_CURR[1][i]/U_CURR[0][i];
+    dT = (EARTH->dGamma-1)*(U_CURR[2][i]/U_CURR[0][i] - 0.5*dV*dV);
+    dLambda = fabs(dV) + sqrt(EARTH->dGamma*dT);
     for(k=0;k<3;k++){
-      dDeltaR = (daR[i]-daR[i-1]);
-      dV = U_CURR[1][i]/U_CURR[0][i];
-      dT = (EARTH->dGamma-1)*(U_CURR[2][i]/U_CURR[0][i] - 0.5*dV*dV);
-      dLambda = fabs(dV) + sqrt(EARTH->dGamma*dT);  
       dGNumericPlus = 0.5*(G_CURR[k][i+1]+G_CURR[k][i]) - 0.5*dLambda*(U_CURR[k][i+1]-U_CURR[k][i]);
       dGNumericMinus = 0.5*(G_CURR[k][i]+G_CURR[k][i-1]) - 0.5*dLambda*(U_CURR[k][i]-U_CURR[k][i-1]);        
       U_NEXT[k][i] = U_CURR[k][i] - dDt*((dGNumericPlus-dGNumericMinus)/dDeltaR - Q_CURR[k][i]);
@@ -225,6 +227,7 @@ void fvOutput(OUTPUT *OUT, double *daR, double *daQ, SYSTEM *SYS, PLANET *EARTH,
 
   long int i;
   double dV, dT, dRho;
+  double dLambda;
   
   for(i=0;i<SYS->iNGrid;i++){
     
@@ -248,6 +251,23 @@ void fvOutput(OUTPUT *OUT, double *daR, double *daQ, SYSTEM *SYS, PLANET *EARTH,
     OUT->dV[OUT->iOutputNum][i] = dV;
     OUT->dRho[OUT->iOutputNum][i] = dRho;
     
+    // Normalized numerical viscosity
+    if (SYS->iIntegrator == INT_LAXFRIED) {
+      dLambda = fabs(dV) + sqrt(EARTH->dGamma*dT); 
+      if ((i > 0) && (i < SYS->iNGrid - 1)){
+        OUT->dMVisc[OUT->iOutputNum][i] = 0.5 * dLambda * (U[0][i+1] - U[0][i-1]) / U[0][i];
+        OUT->dPVisc[OUT->iOutputNum][i] = 0.5 * dLambda * (U[1][i+1] - U[1][i-1]) / U[1][i];
+        OUT->dEVisc[OUT->iOutputNum][i] = 0.5 * dLambda * (U[2][i+1] - U[2][i-1]) / U[2][i];
+      } else {
+        OUT->dMVisc[OUT->iOutputNum][i] = 0.;
+        OUT->dPVisc[OUT->iOutputNum][i] = 0.;
+        OUT->dEVisc[OUT->iOutputNum][i] = 0.;
+      }
+    } else {
+      OUT->dMVisc[OUT->iOutputNum][i] = 0.;
+      OUT->dPVisc[OUT->iOutputNum][i] = 0.;
+      OUT->dEVisc[OUT->iOutputNum][i] = 0.;
+    }
   }
   
   OUT->iOutputNum++;

@@ -67,6 +67,9 @@ int fiHydro(SYSTEM SYS, PLANET EARTH, OUTPUT *OUT){
   OUT->dQ0 = malloc(OUT->iSize * sizeof(double*));
   OUT->dQ1 = malloc(OUT->iSize * sizeof(double*));
   OUT->dQ2 = malloc(OUT->iSize * sizeof(double*));
+  OUT->dMVisc = malloc(OUT->iSize * sizeof(double*));
+  OUT->dPVisc = malloc(OUT->iSize * sizeof(double*));
+  OUT->dEVisc = malloc(OUT->iSize * sizeof(double*));
   for (i=0;i<OUT->iSize;i++) {
     OUT->dR[i] = malloc(SYS.iNGrid * sizeof(double));
     OUT->dV[i] = malloc(SYS.iNGrid * sizeof(double));
@@ -81,6 +84,9 @@ int fiHydro(SYSTEM SYS, PLANET EARTH, OUTPUT *OUT){
     OUT->dQ0[i] = malloc(SYS.iNGrid * sizeof(double));
     OUT->dQ1[i] = malloc(SYS.iNGrid * sizeof(double));
     OUT->dQ2[i] = malloc(SYS.iNGrid * sizeof(double));
+    OUT->dMVisc[i] = malloc(SYS.iNGrid * sizeof(double));
+    OUT->dPVisc[i] = malloc(SYS.iNGrid * sizeof(double));
+    OUT->dEVisc[i] = malloc(SYS.iNGrid * sizeof(double));
   }
   fvOutput(OUT, daR, daQ, &SYS, &EARTH, U_CURR, G_CURR, Q_CURR);
   
@@ -88,10 +94,15 @@ int fiHydro(SYSTEM SYS, PLANET EARTH, OUTPUT *OUT){
   for(ti=1;ti<SYS.iNRuns;ti++){
     
     // Take one step
-    fvLaxFriedrichs(dDt, daR, &SYS, &EARTH, U_CURR, G_CURR, Q_CURR, U_NEXT);
+    if (SYS.iIntegrator == INT_LAXFRIED) {
+      fvLaxFriedrichs(dDt, daR, &SYS, &EARTH, U_CURR, G_CURR, Q_CURR, U_NEXT);
+    } else {
+      fprintf(stderr,"Invalid integrator selected.\n");
+      exit(1);
+    }
     
     // Check for convergence every 100 runs
-    if (ti % (int)((double)SYS.iNRuns/100.) == 0){
+    if (ti % (int)((double)SYS.iNRuns / 100.) == 0){
       dDelta = fdDelta(&SYS, U_CURR, U_NEXT);
     }
     
