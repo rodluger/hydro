@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-example.py
-----------
+example_lf.py
+-------------
 
 '''
 
 from __future__ import division, print_function, absolute_import, unicode_literals
-from hydro import Hydro
+from cip import SodCIP
 
-h = Hydro()
-h.run()
-h.animate()
+cip = SodCIP()
+cip.Animate(thin = 10)
