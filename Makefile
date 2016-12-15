@@ -18,13 +18,13 @@ GCC = gcc
 
 all:
 	echo "[hydro] Compiling C source code..."
-	${GCC} ${GCC_FLAGS1} hydro/chydro.c
-	${GCC} ${GCC_FLAGS1} hydro/integrate.c
-	${GCC} ${GCC_FLAGS1} hydro/functions.c
+	${GCC} ${GCC_FLAGS1} laxfried/chydro.c
+	${GCC} ${GCC_FLAGS1} laxfried/integrate.c
+	${GCC} ${GCC_FLAGS1} laxfried/functions.c
 	echo "[hydro] Generating shared library..."
 	gcc ${GCC_FLAGS2} -o chydro.so chydro.o integrate.o functions.o -lc
 	rm chydro.o
 	rm integrate.o
 	rm functions.o
-	mv chydro.so hydro/chydro.so
+	mv chydro.so laxfried/chydro.so
 	echo "[hydro] Install successful."
