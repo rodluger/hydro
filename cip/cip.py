@@ -53,6 +53,24 @@ class SodCIP(object):
     self.HEND = self.HBEG + 1 + self.npoints
     self.HTOT = self.HEND + 1
     
+    # Independent coordinate on regular and staggered (h) grids
+    self.x = np.arange(0, self.npoints) * self.dx
+    self.xh = np.arange(0, (self.npoints + 1)) * self.dx - self.dx / 2
+    
+    # Add in the ghost cells
+    self.x = np.concatenate([[-2 * self.dx, -1 * self.dx], 
+                             self.x, 
+                             [self.npoints * self.dx, (self.npoints + 1) * self.dx]])
+    self.xh = np.concatenate([[-self.dx - self.dx / 2], 
+                              self.xh,
+                              [(self.npoints + 1) * self.dx - self.dx / 2]])
+    
+    # Compute dx array (forward difference, x[i+1] - x[i])
+    self.dx = self.x[1:] - self.x[:-1]
+    self.dx = np.append(self.dx, self.dx[-1])
+    self.dxh = self.xh[1:] - self.xh[:-1]
+    self.dxh = np.append(self.dxh, self.dxh[-1])
+    
     # Initial profiles for the Sod shock tube
     self.rho = np.ones(self.ITOT); self.rho[self.ITOT//2:] = 0.125
     self.u = np.zeros(self.HTOT)
@@ -62,13 +80,15 @@ class SodCIP(object):
 
     # Compute derivatives
     self.rhoprime = np.gradient(self.rho, self.dx)
-    self.uprime = np.gradient(self.u, self.dx)
+    self.uprime = np.gradient(self.u, self.dxh)
     self.eprime = np.gradient(self.e, self.dx)
     
     # Compute initial density integral: Equation (19) in Yabe et al. (2001)
     if self.CSL2:
       self.eta = np.zeros(self.HTOT)
-      self.eta[self.HBEG:self.HEND] = 0.5 * (self.rho[self.IBEG-1:self.IEND] + self.rho[self.IBEG:self.IEND+1]) * self.dx
+      self.eta[self.HBEG:self.HEND] = 0.5 * (self.rho[self.IBEG-1:self.IEND] + 
+                                             self.rho[self.IBEG:self.IEND+1]) * \
+                                             self.dx[self.IBEG-1:self.IEND]
       self.eta[0] = self.eta[1]
       self.eta[-1] = self.eta[-2]
       
@@ -76,13 +96,7 @@ class SodCIP(object):
     '''
     
     '''
-    
-    # The x arrays
-    self.x = np.arange(0, self.npoints) * self.dx
-    self.xh = np.arange(0, (self.npoints + 1)) * self.dx - self.dx / 2
-    self.xg = np.array([-2, -1, self.npoints, self.npoints + 1]) * self.dx
-    self.xgh = np.array([-self.dx - self.dx / 2, (self.npoints + 1) * self.dx - self.dx / 2])
-    
+        
     # Plot initial state
     self.time = 0
     self.fig, self.ax = pl.subplots(2, 2, figsize = (14, 10), sharex = True)
@@ -91,16 +105,16 @@ class SodCIP(object):
     self.title = self.fig.suptitle('time = %.3f' % self.time, fontsize = 18)
     
     # Main grid
-    self.curve_rho, = self.ax[0].plot(self.x, self.rho[self.IBEG:self.IEND], 'b-', label = 'CIP')
-    self.curve_p, = self.ax[1].plot(self.x, self.p[self.IBEG:self.IEND], 'b-')
-    self.curve_u, = self.ax[2].plot(self.xh, self.u[self.HBEG:self.HEND], 'b-')
-    self.curve_e, = self.ax[3].plot(self.x, self.e[self.IBEG:self.IEND], 'b-')
+    self.curve_rho, = self.ax[0].plot(self.x[self.IBEG:self.IEND], self.rho[self.IBEG:self.IEND], 'b-', label = 'CIP')
+    self.curve_p, = self.ax[1].plot(self.x[self.IBEG:self.IEND], self.p[self.IBEG:self.IEND], 'b-')
+    self.curve_u, = self.ax[2].plot(self.xh[self.HBEG:self.HEND], self.u[self.HBEG:self.HEND], 'b-')
+    self.curve_e, = self.ax[3].plot(self.x[self.IBEG:self.IEND], self.e[self.IBEG:self.IEND], 'b-')
         
     # Ghost cells
-    self.ghost_rho, = self.ax[0].plot(self.xg, np.append(self.rho[:self.IBEG], self.rho[self.IEND:]), 'b.')
-    self.ghost_p, = self.ax[1].plot(self.xg, np.append(self.p[:self.IBEG], self.p[self.IEND:]), 'b.')
-    self.ghost_u, = self.ax[2].plot(self.xgh, np.append(self.u[:self.HBEG], self.u[self.HEND:]), 'b.')
-    self.ghost_e, = self.ax[3].plot(self.xg, np.append(self.e[:self.IBEG], self.e[self.IEND:]), 'b.')
+    self.ghost_rho, = self.ax[0].plot(np.append(self.x[:self.IBEG], self.x[self.IEND:]), np.append(self.rho[:self.IBEG], self.rho[self.IEND:]), 'b.')
+    self.ghost_p, = self.ax[1].plot(np.append(self.x[:self.IBEG], self.x[self.IEND:]), np.append(self.p[:self.IBEG], self.p[self.IEND:]), 'b.')
+    self.ghost_u, = self.ax[2].plot(np.append(self.xh[:self.HBEG], self.xh[self.HEND:]), np.append(self.u[:self.HBEG], self.u[self.HEND:]), 'b.')
+    self.ghost_e, = self.ax[3].plot(np.append(self.x[:self.IBEG], self.x[self.IEND:]), np.append(self.e[:self.IBEG], self.e[self.IEND:]), 'b.')
     
     # Analytic solution
     self.xa, self.rhoa, self.pa, self.ua, self.ea = Sod(self.time)
@@ -214,9 +228,7 @@ class SodCIP(object):
         self.rho, self.eta = self.RhoCSL2()
       self.e, self.eprime = self.CIP0(self.estar, self.eprimestar)
       self.u, self.uprime = self.CIP0(self.ustar, self.uprimestar, half = True)
-      
-      
-        
+ 
       # Advance
       self.time += self.dt
   
@@ -229,21 +241,19 @@ class SodCIP(object):
     '''
         
     # NOTE: It is unclear from Yabe et al. (2001) how xi should be calculated
-    # NOTE: Might want to use `ustar` rather than `u`. Not sure.
+    # NOTE: Might want to use `ustar` rather than `u`. Not sure. Either method seems to work.
     uav = 0.5 * (self.u[self.HBEG+1:self.HEND] + self.u[self.HBEG:self.HEND-1])
     xi = -uav * self.dt
 
     # Negative velocity: iup = i + 1; icell = i + 1/2
-    # NOTE: If dx is not constant, need to do dx = x[iup] - x[i].
-    dxm = self.dx
+    dxm = self.x[self.IBEG+1:self.IEND+1] - self.x[self.IBEG:self.IEND]
     A1m = (self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG+1:self.IEND+1]) / dxm ** 2 - \
           2 * self.eta[self.HBEG+1:self.HEND] / dxm ** 3
     A2m = -(2 * self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG+1:self.IEND+1]) / dxm + \
           3 * self.eta[self.HBEG+1:self.HEND] / dxm ** 2
     
     # Positive velocity: iup = i - 1; icell = i - 1/2
-    # NOTE: If dx is not constant, need to do dx = x[iup] - x[i].
-    dxp = -self.dx
+    dxp = self.x[self.IBEG-1:self.IEND-1] - self.x[self.IBEG:self.IEND]
     A1p = (self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG-1:self.IEND-1]) / dxp ** 2 + \
           2 * self.eta[self.HBEG:self.HEND-1] / dxp ** 3
     A2p = -(2 * self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG-1:self.IEND-1]) / dxp - \
@@ -259,10 +269,10 @@ class SodCIP(object):
     
     # Nonadvection phase
     G = np.zeros_like(self.rho)
-    # NOTE: Might want to use `ustar` rather than `u`. Not sure.
+    # NOTE: Might want to use `ustar` rather than `u`. Not sure. Either method seems to work.
     G[self.IBEG:self.IEND] = -rhostar[self.IBEG:self.IEND] * \
                             (self.u[self.HBEG+1:self.HEND] - 
-                            self.u[self.HBEG:self.HEND-1]) / self.dx
+                            self.u[self.HBEG:self.HEND-1]) / self.dxh[self.HBEG:self.IEND-1]
     
     # Advance the density
     rhonext = rhostar + G * self.dt
@@ -287,8 +297,8 @@ class SodCIP(object):
     '''
 
     if not half:
-      # NOTE: This differs from (19) in Yabe & Aoki (1991) by a factor of 2,
-      # since we account for the fact that we're on a staggered half-step grid for u
+      # NOTE: This differs from (19) in Yabe & Aoki (1991) by a factor of 2, since
+      # we must account for the fact that we're on a staggered half-step grid for `u`
       du = 2 * (self.u[self.HBEG+1:self.HEND] - self.u[self.HBEG:self.HEND-1])
       BEG = self.IBEG
       END = self.IEND
@@ -298,8 +308,8 @@ class SodCIP(object):
       END = self.HEND
     dfprimedt = np.zeros_like(f)
     dfprimedt[BEG:END] = (fstar[BEG+1:END+1] - fstar[BEG-1:END-1] - 
-                         f[BEG+1:END+1] + f[BEG-1:END-1]) / (2 * self.dx * self.dt) - \
-                         fprime[BEG:END] * du / (2 * self.dx)
+                         f[BEG+1:END+1] + f[BEG-1:END-1]) / (2 * self.dx[BEG:END] * self.dt) - \
+                         fprime[BEG:END] * du / (2 * self.dx[BEG:END])
     return fprime + self.dt * dfprimedt
   
   def RhoStar(self):
@@ -310,7 +320,7 @@ class SodCIP(object):
     drhodt = np.zeros_like(self.rho)
     drhodt[self.IBEG:self.IEND] = -(self.rho[self.IBEG:self.IEND] * 
                                    (self.u[self.HBEG+1:self.HEND] - 
-                                   self.u[self.HBEG:self.HEND-1]) / self.dx)
+                                   self.u[self.HBEG:self.HEND-1]) / self.dxh[self.HBEG:self.HEND-1])
     return self.rho + self.dt * drhodt
 
   def UStar(self):
@@ -320,7 +330,7 @@ class SodCIP(object):
     
     dudt = np.zeros_like(self.u)
     dudt[self.HBEG:self.HEND] = -((self.p[self.IBEG:self.IEND+1] - 
-                                 self.p[self.IBEG-1:self.IEND]) / self.dx) / \
+                                 self.p[self.IBEG-1:self.IEND]) / self.dx[self.IBEG:self.IEND+1]) / \
                                  (0.5 * (self.rho[self.IBEG:self.IEND+1] + 
                                  self.rho[self.IBEG-1:self.IEND]))
     return self.u + self.dt * dudt
@@ -336,7 +346,7 @@ class SodCIP(object):
                                  (self.ustar[self.HBEG+1:self.HEND] - 
                                  self.ustar[self.HBEG:self.HEND-1] + 
                                  self.u[self.HBEG+1:self.HEND] - 
-                                 self.u[self.HBEG:self.HEND-1]) / (2 * self.dx)
+                                 self.u[self.HBEG:self.HEND-1]) / (2 * self.dxh[self.HBEG:self.HEND-1])
     return self.e + self.dt * dedt
   
   def CIP0(self, f, fprime, half = False):
@@ -356,16 +366,16 @@ class SodCIP(object):
       xi = -uav * self.dt
 
     # Negative velocity
-    am = (fprime[BEG:END] + fprime[BEG+1:END+1]) / (self.dx ** 2) + \
-          2 * (f[BEG:END] - f[BEG+1:END+1]) / (self.dx ** 3)
-    bm = 3 * (f[BEG+1:END+1] - f[BEG:END]) / (self.dx ** 2) - \
-        (2 * fprime[BEG:END] + fprime[BEG+1:END+1]) / self.dx
+    am = (fprime[BEG:END] + fprime[BEG+1:END+1]) / (self.dx[BEG:END] ** 2) + \
+          2 * (f[BEG:END] - f[BEG+1:END+1]) / (self.dx[BEG:END] ** 3)
+    bm = 3 * (f[BEG+1:END+1] - f[BEG:END]) / (self.dx[BEG:END] ** 2) - \
+        (2 * fprime[BEG:END] + fprime[BEG+1:END+1]) / self.dx[BEG:END]
     
     # Positive velocity    
-    ap = (fprime[BEG:END] + fprime[BEG-1:END-1]) / (self.dx ** 2) - \
-          2 * (f[BEG:END] - f[BEG-1:END-1]) / (self.dx ** 3)
-    bp = 3 * (f[BEG-1:END-1] - f[BEG:END]) / (self.dx ** 2) + \
-        (2 * fprime[BEG:END] + fprime[BEG-1:END-1]) / self.dx
+    ap = (fprime[BEG:END] + fprime[BEG-1:END-1]) / (self.dx[BEG:END] ** 2) - \
+          2 * (f[BEG:END] - f[BEG-1:END-1]) / (self.dx[BEG:END] ** 3)
+    bp = 3 * (f[BEG-1:END-1] - f[BEG:END]) / (self.dx[BEG:END] ** 2) + \
+        (2 * fprime[BEG:END] + fprime[BEG-1:END-1]) / self.dx[BEG:END]
 
     a = np.where(uav < 0, am, ap)
     b = np.where(uav < 0, bm, bp)
