@@ -364,23 +364,27 @@ class SodCIP(object):
       END = self.IEND
       uav = 0.5 * (self.ustar[self.HBEG+1:self.HEND] + self.ustar[self.HBEG:self.HEND-1])
       xi = -uav * self.dt
+      dxm = self.x[self.IBEG+1:self.IEND+1] - self.x[self.IBEG:self.IEND]
+      dxp = self.x[self.IBEG-1:self.IEND-1] - self.x[self.IBEG:self.IEND]
     else:
       BEG = self.HBEG
       END = self.HEND
       uav = self.u[self.HBEG:self.HEND]
       xi = -uav * self.dt
+      dxm = self.x[self.HBEG+1:self.HEND+1] - self.x[self.HBEG:self.HEND]
+      dxp = self.x[self.HBEG-1:self.HEND-1] - self.x[self.HBEG:self.HEND]
 
     # Negative velocity
-    am = (fprime[BEG:END] + fprime[BEG+1:END+1]) / (self.dx[BEG:END] ** 2) + \
-          2 * (f[BEG:END] - f[BEG+1:END+1]) / (self.dx[BEG:END] ** 3)
-    bm = 3 * (f[BEG+1:END+1] - f[BEG:END]) / (self.dx[BEG:END] ** 2) - \
-        (2 * fprime[BEG:END] + fprime[BEG+1:END+1]) / self.dx[BEG:END]
+    am = (fprime[BEG:END] + fprime[BEG+1:END+1]) / (dxm ** 2) + \
+          2 * (f[BEG:END] - f[BEG+1:END+1]) / (dxm ** 3)
+    bm = 3 * (f[BEG+1:END+1] - f[BEG:END]) / (dxm ** 2) - \
+        (2 * fprime[BEG:END] + fprime[BEG+1:END+1]) / dxm
     
-    # Positive velocity    
-    ap = (fprime[BEG:END] + fprime[BEG-1:END-1]) / (self.dx[BEG:END] ** 2) - \
-          2 * (f[BEG:END] - f[BEG-1:END-1]) / (self.dx[BEG:END] ** 3)
-    bp = 3 * (f[BEG-1:END-1] - f[BEG:END]) / (self.dx[BEG:END] ** 2) + \
-        (2 * fprime[BEG:END] + fprime[BEG-1:END-1]) / self.dx[BEG:END]
+    # Positive velocity
+    ap = (fprime[BEG:END] + fprime[BEG-1:END-1]) / (dxp ** 2) + \
+          2 * (f[BEG:END] - f[BEG-1:END-1]) / (dxp ** 3)
+    bp = 3 * (f[BEG-1:END-1] - f[BEG:END]) / (dxp ** 2) - \
+        (2 * fprime[BEG:END] + fprime[BEG-1:END-1]) / dxp
 
     a = np.where(uav < 0, am, ap)
     b = np.where(uav < 0, bm, bp)
