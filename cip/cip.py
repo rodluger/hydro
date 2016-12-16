@@ -197,7 +197,7 @@ class SodCIP(object):
     '''
     
     '''
-    
+
     self.ax[0].margins(0.05, None)
     
     for ax, var in zip([self.ax[0], self.ax[1], self.ax[2], self.ax[3]], 
@@ -248,16 +248,16 @@ class SodCIP(object):
     
     '''
     
-    # Left boundary: fixed
-    self.rho[0:self.IBEG] = 1
-    self.u[0:self.HBEG] = 0
-    self.p[0:self.IBEG] = 1
+    # Left boundary: float
+    self.rho[0:self.IBEG] = self.rho[self.IBEG]
+    self.u[0:self.HBEG] = self.u[self.HBEG]
+    self.p[0:self.IBEG] = self.p[self.IBEG]
     self.e[0:self.IBEG] = self.p[0] / (self.gamma - 1) / self.rho[0]
     
-    # Right boundary: fixed
-    self.rho[self.IEND:] = 0.125
-    self.u[self.HEND:] = 0
-    self.p[self.IEND:] = 0.1
+    # Right boundary: float
+    self.rho[self.IEND:] = self.rho[self.IEND-1]
+    self.u[self.HEND:] = self.u[self.HEND-1]
+    self.p[self.IEND:] = self.p[self.IEND-1]
     self.e[self.HEND:] = self.p[self.IEND] / (self.gamma - 1) / self.rho[self.IEND]
   
   def RhoCSL2(self):
