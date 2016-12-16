@@ -30,7 +30,7 @@ class SodCIP(object):
   '''
   
   def __init__(self, npoints = 200, dx = 0.01, dt = 0.001,
-               gamma = 1.4, a = 0.65):
+               gamma = 1.4, a = 0.65, CSL2 = False):
     '''
     
     '''
@@ -41,6 +41,7 @@ class SodCIP(object):
     self.dt = dt
     self.gamma = gamma
     self.a = a
+    self.CSL2 = CSL2
 
     # Regular step bounds
     self.IBEG = 2
@@ -64,6 +65,13 @@ class SodCIP(object):
     self.uprime = np.gradient(self.u, self.dx)
     self.eprime = np.gradient(self.e, self.dx)
     
+    # Compute initial density integral: Equation (19) in Yabe et al. (2001)
+    if self.CSL2:
+      self.eta = np.zeros(self.HTOT)
+      self.eta[self.HBEG:self.HEND] = 0.5 * (self.rho[self.IBEG-1:self.IEND] + self.rho[self.IBEG:self.IEND+1]) * self.dx
+      self.eta[0] = self.eta[1]
+      self.eta[-1] = self.eta[-2]
+      
   def InitPlot(self):
     '''
     
@@ -188,22 +196,90 @@ class SodCIP(object):
       self.q = self.NumVisc()
       # NOTE: Multiplication by rho in line below missing in Yabe & Aoki (1991)
       self.p = (self.gamma - 1) * self.rho * self.e + self.q 
-      self.rhostar = self.RhoStar()
+      if not self.CSL2:
+        self.rhostar = self.RhoStar()
       self.ustar = self.UStar()
       self.estar = self.EStar()
 
       # Non-advection phase: derivatives
-      self.rhoprimestar = self.FPrimeStar(self.rho, self.rhostar, self.rhoprime)
+      if not self.CSL2:
+        self.rhoprimestar = self.FPrimeStar(self.rho, self.rhostar, self.rhoprime)
       self.uprimestar = self.FPrimeStar(self.u, self.ustar, self.uprime, half = True)
       self.eprimestar = self.FPrimeStar(self.e, self.estar, self.eprime)
 
       # Advection phase
-      self.rho, self.rhoprime = self.CIP0(self.rhostar, self.rhoprimestar)
+      if not self.CSL2:
+        self.rho, self.rhoprime = self.CIP0(self.rhostar, self.rhoprimestar)
+      else:
+        self.rho, self.eta = self.RhoCSL2()
       self.e, self.eprime = self.CIP0(self.estar, self.eprimestar)
       self.u, self.uprime = self.CIP0(self.ustar, self.uprimestar, half = True)
-    
+      
+      
+        
       # Advance
       self.time += self.dt
+  
+  def RhoCSL2(self):
+    '''
+    The notation is quite confusing here. Yabe et al. (2001) use `rho` to designate the
+    integral of the variable of interest (`f`). However, since we're using CSL2 to solve for
+    the time evolution of the density, I'm calling the integral of this quantity `eta`.
+    
+    '''
+        
+    # NOTE: It is unclear from Yabe et al. (2001) how xi should be calculated
+    # NOTE: Might want to use `ustar` rather than `u`. Not sure.
+    uav = 0.5 * (self.u[self.HBEG+1:self.HEND] + self.u[self.HBEG:self.HEND-1])
+    xi = -uav * self.dt
+
+    # Negative velocity: iup = i + 1; icell = i + 1/2
+    # NOTE: If dx is not constant, need to do dx = x[iup] - x[i].
+    dxm = self.dx
+    A1m = (self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG+1:self.IEND+1]) / dxm ** 2 - \
+          2 * self.eta[self.HBEG+1:self.HEND] / dxm ** 3
+    A2m = -(2 * self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG+1:self.IEND+1]) / dxm + \
+          3 * self.eta[self.HBEG+1:self.HEND] / dxm ** 2
+    
+    # Positive velocity: iup = i - 1; icell = i - 1/2
+    # NOTE: If dx is not constant, need to do dx = x[iup] - x[i].
+    dxp = -self.dx
+    A1p = (self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG-1:self.IEND-1]) / dxp ** 2 + \
+          2 * self.eta[self.HBEG:self.HEND-1] / dxp ** 3
+    A2p = -(2 * self.rho[self.IBEG:self.IEND] + self.rho[self.IBEG-1:self.IEND-1]) / dxp - \
+          3 * self.eta[self.HBEG:self.HEND-1] / dxp ** 2
+    
+    A1 = np.where(uav < 0, A1m, A1p)
+    A2 = np.where(uav < 0, A2m, A2p)
+    
+    # Advection phase: One of the equations between (37) and (38) in Yabe et al. (2001)
+    drho = np.zeros_like(self.rho)
+    drho[self.IBEG:self.IEND] = 3 * A1 * xi ** 2 + 2 * A2 * xi
+    rhostar = self.rho + drho
+    
+    # Nonadvection phase
+    G = np.zeros_like(self.rho)
+    # NOTE: Might want to use `ustar` rather than `u`. Not sure.
+    G[self.IBEG:self.IEND] = -rhostar[self.IBEG:self.IEND] * \
+                            (self.u[self.HBEG+1:self.HEND] - 
+                            self.u[self.HBEG:self.HEND-1]) / self.dx
+    
+    # Advance the density
+    rhonext = rhostar + G * self.dt
+    
+    # Now worry about the integral of the density, `eta`. Note that Yabe et al. (2001)
+    # confusingly call this `rho`. This is equation (28) in Yabe et al. (2001):
+    deltaeta = np.zeros_like(self.eta)
+    deltaeta[self.IBEG:self.IEND] = -(A1 * xi ** 3 + A2 * xi ** 2 + self.rho[self.IBEG:self.IEND] * xi)
+    
+    # Equation (38) in Yabe et al. (2001):
+    # NOTE: The boundary conditions aren't correct for this step -- need to calculate
+    # A1 and A2 in the ghost cells as well.
+    deta = np.zeros_like(self.eta)
+    deta[self.HBEG:self.HEND] = deltaeta[self.IBEG-1:self.IEND] - deltaeta[self.IBEG:self.IEND+1]
+    etanext = self.eta + deta
+    
+    return rhonext, etanext
     
   def FPrimeStar(self, f, fstar, fprime, half = False):
     '''
@@ -290,7 +366,7 @@ class SodCIP(object):
           2 * (f[BEG:END] - f[BEG-1:END-1]) / (self.dx ** 3)
     bp = 3 * (f[BEG-1:END-1] - f[BEG:END]) / (self.dx ** 2) + \
         (2 * fprime[BEG:END] + fprime[BEG-1:END-1]) / self.dx
-    
+
     a = np.where(uav < 0, am, ap)
     b = np.where(uav < 0, bm, bp)
     
