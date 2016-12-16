@@ -82,7 +82,10 @@ class SodCIP(object):
     self.p = np.ones(self.ITOT); self.p[midpt:] = 0.1
     # NOTE: Division by rho in line below missing in Yabe & Aoki (1991)
     self.e = self.p / (self.gamma - 1) / self.rho 
-
+  
+    # Set boundary conditions
+    self.Boundary()
+    
     # Compute derivatives
     self.rhoprime = np.gradient(self.rho, self.dx)
     self.uprime = np.gradient(self.u, self.dxh)
@@ -211,6 +214,9 @@ class SodCIP(object):
     
     for n in range(nsteps):
       
+      # Set boundary conditions
+      self.Boundary()
+      
       # Non-advection phase: variables
       self.q = self.NumVisc()
       # NOTE: Multiplication by rho in line below missing in Yabe & Aoki (1991)
@@ -236,6 +242,23 @@ class SodCIP(object):
  
       # Advance
       self.time += self.dt
+  
+  def Boundary(self):
+    '''
+    
+    '''
+    
+    # Left boundary: fixed
+    self.rho[0:IBEG] = 1
+    self.u[0:HBEG] = 0
+    self.p[0:IBEG] = 1
+    self.e[0:IBEG] = self.p[0] / (self.gamma - 1) / self.rho[0]
+    
+    # Right boundary: fixed
+    self.rho[IEND:] = 0.125
+    self.u[HEND:] = 0
+    self.p[IEND:] = 0.1
+    self.e[HEND:] = self.p[IEND] / (self.gamma - 1) / self.rho[IEND]
   
   def RhoCSL2(self):
     '''
