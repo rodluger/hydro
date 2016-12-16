@@ -287,9 +287,27 @@ class SodCIP(object):
     deltaeta = np.zeros_like(self.eta)
     deltaeta[self.IBEG:self.IEND] = -(A1 * xi ** 3 + A2 * xi ** 2 + self.rho[self.IBEG:self.IEND] * xi)
     
+    # NOTE: We need to calculate deltaeta in the innermost ghost cells since we're differentiating
+    # it in the next step. So we'll need xi, A1 and A2 in the ghost cells.
+    
+    '''
+    uav = 0.5 * (self.u[self.HBEG] + self.u[self.HBEG-1])
+    xi = -uav * self.dt
+    if uav < 0:
+      dx = self.x[self.IBEG] - self.x[self.IBEG-1]
+      A1 = (self.rho[self.IBEG-1] + self.rho[self.IBEG]) / dx ** 2 - 2 * self.eta[self.HBEG] / dx ** 3
+      A2 = -(2 * self.rho[self.IBEG-1] + self.rho[self.IBEG]) / dx + 3 * self.eta[self.HBEG] / dx ** 2
+    else:
+      dx = self.x[self.IBEG-2] - self.x[self.IBEG-1]
+      A1 = (self.rho[self.IBEG-1] + self.rho[self.IBEG-2]) / dx ** 2 + 2 * self.eta[self.HBEG-1] / dx ** 3
+      
+      
+    deltaeta[self.IBEG-1] = 
+    deltaeta[self.IEND] =
+    '''
+    
     # Equation (38) in Yabe et al. (2001):
-    # NOTE: The boundary conditions aren't correct for this step -- need to calculate
-    # A1 and A2 in the ghost cells as well.
+    
     deta = np.zeros_like(self.eta)
     deta[self.HBEG:self.HEND] = deltaeta[self.IBEG-1:self.IEND] - deltaeta[self.IBEG:self.IEND+1]
     etanext = self.eta + deta
