@@ -30,7 +30,7 @@ class SodCIP(object):
   '''
   
   def __init__(self, npoints = 200, xmin = 0, xmax = 2, dt = 0.001,
-               gamma = 1.4, a = 0.65, CSL2 = False):
+               gamma = 1.4, a = 0.65, CSL2 = False, gridpower = 1):
     '''
     
     '''
@@ -43,6 +43,7 @@ class SodCIP(object):
     self.gamma = gamma
     self.a = a
     self.CSL2 = CSL2
+    self.gridpower = gridpower
 
     # Regular step bounds
     self.IBEG = 2
@@ -55,7 +56,7 @@ class SodCIP(object):
     self.HTOT = self.HEND + 1
     
     # Independent coordinate on the regular grid
-    self.x = np.linspace(xmin, xmax, npoints)
+    self.x = np.linspace(xmin ** self.gridpower, xmax ** self.gridpower, npoints) ** (1. / self.gridpower)
 
     # Add the ghost cells
     dxlo = self.x[1] - self.x[0]
@@ -66,7 +67,7 @@ class SodCIP(object):
     
     # Independent coordinate on the half-step (staggered) grid
     self.xh = 0.5 * (self.x[1:] + self.x[:-1])
-
+    
     # Compute dx array (forward difference, x[i+1] - x[i])
     self.dx = self.x[1:] - self.x[:-1]
     self.dx = np.append(self.dx, self.dx[-1])
@@ -74,9 +75,11 @@ class SodCIP(object):
     self.dxh = np.append(self.dxh, self.dxh[-1])
     
     # Initial profiles for the Sod shock tube
-    self.rho = np.ones(self.ITOT); self.rho[self.ITOT//2:] = 0.125
+    # Midpoint index
+    midpt = np.argmin(np.abs(self.x - 0.5 * (xmax - xmin)))
+    self.rho = np.ones(self.ITOT); self.rho[midpt:] = 0.125
     self.u = np.zeros(self.HTOT)
-    self.p = np.ones(self.ITOT); self.p[self.ITOT//2:] = 0.1
+    self.p = np.ones(self.ITOT); self.p[midpt:] = 0.1
     # NOTE: Division by rho in line below missing in Yabe & Aoki (1991)
     self.e = self.p / (self.gamma - 1) / self.rho 
 
