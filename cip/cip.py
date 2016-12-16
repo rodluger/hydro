@@ -56,9 +56,7 @@ class SodCIP(object):
     
     # Independent coordinate on the regular grid
     self.x = np.linspace(xmin, xmax, npoints)
-    
-    import pdb; pdb.set_trace()
-    
+
     # Add the ghost cells
     dxlo = self.x[1] - self.x[0]
     dxhi = self.x[-1] - self.x[-2]
