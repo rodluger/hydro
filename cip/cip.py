@@ -288,9 +288,10 @@ class SodCIP(object):
     deltaeta[self.IBEG:self.IEND] = -(A1 * xi ** 3 + A2 * xi ** 2 + self.rho[self.IBEG:self.IEND] * xi)
     
     # NOTE: We need to calculate deltaeta in the innermost ghost cells since we're differentiating
-    # it in the next step. So we'll need xi, A1 and A2 in the ghost cells.
+    # it in the next step. So we'll need xi, A1 and A2 in the ghost cells. I *think* this is correct,
+    # but this should be checked in the future.
     
-    '''
+    # Left ghost cell
     uav = 0.5 * (self.u[self.HBEG] + self.u[self.HBEG-1])
     xi = -uav * self.dt
     if uav < 0:
@@ -300,14 +301,23 @@ class SodCIP(object):
     else:
       dx = self.x[self.IBEG-2] - self.x[self.IBEG-1]
       A1 = (self.rho[self.IBEG-1] + self.rho[self.IBEG-2]) / dx ** 2 + 2 * self.eta[self.HBEG-1] / dx ** 3
-      
-      
-    deltaeta[self.IBEG-1] = 
-    deltaeta[self.IEND] =
-    '''
+      A2 = -(2 * self.rho[self.IBEG-1] + self.rho[self.IBEG-2]) / dx - 3 * self.eta[self.HBEG-1] / dx ** 2
+    deltaeta[self.IBEG-1] = -(A1 * xi ** 3 + A2 * xi ** 2 + self.rho[self.IBEG-1] * xi)
+    
+    # Right ghost cell
+    uav = 0.5 * (self.u[self.HEND] + self.u[self.HEND-1])
+    xi = -uav * self.dt
+    if uav < 0:
+      dx = self.x[self.IEND+1] - self.x[self.IEND]
+      A1 = (self.rho[self.IEND] + self.rho[self.IEND+1]) / dx ** 2 - 2 * self.eta[self.HEND] / dx ** 3
+      A2 = -(2 * self.rho[self.IEND] + self.rho[self.IEND+1]) / dx + 3 * self.eta[self.HEND] / dx ** 2
+    else:
+      dx = self.x[self.IEND-1] - self.x[self.IEND]
+      A1 = (self.rho[self.IEND] + self.rho[self.IEND-1]) / dx ** 2 + 2 * self.eta[self.HEND-1] / dx ** 3
+      A2 = -(2 * self.rho[self.IEND] + self.rho[self.IEND-1]) / dx - 3 * self.eta[self.HEND-1] / dx ** 2
+    deltaeta[self.IEND] = -(A1 * xi ** 3 + A2 * xi ** 2 + self.rho[self.IEND] * xi)
     
     # Equation (38) in Yabe et al. (2001):
-    
     deta = np.zeros_like(self.eta)
     deta[self.HBEG:self.HEND] = deltaeta[self.IBEG-1:self.IEND] - deltaeta[self.IBEG:self.IEND+1]
     etanext = self.eta + deta
