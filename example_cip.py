@@ -9,5 +9,5 @@ example_lf.py
 from __future__ import division, print_function, absolute_import, unicode_literals
 from cip import SodCIP
 
-cip = SodCIP(CSL2 = True)
+cip = SodCIP(CSL2 = False)
 cip.Animate(thin = 10)

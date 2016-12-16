@@ -29,7 +29,7 @@ class SodCIP(object):
   
   '''
   
-  def __init__(self, npoints = 200, dx = 0.01, dt = 0.001,
+  def __init__(self, npoints = 200, xmin = 0, xmax = 2, dt = 0.001,
                gamma = 1.4, a = 0.65, CSL2 = False):
     '''
     
@@ -37,8 +37,9 @@ class SodCIP(object):
     
     # User
     self.npoints = npoints
-    self.dx = dx
     self.dt = dt
+    self.xmin = xmin
+    self.xmax = xmax
     self.gamma = gamma
     self.a = a
     self.CSL2 = CSL2
@@ -53,18 +54,19 @@ class SodCIP(object):
     self.HEND = self.HBEG + 1 + self.npoints
     self.HTOT = self.HEND + 1
     
-    # Independent coordinate on regular and staggered (h) grids
-    self.x = np.arange(0, self.npoints) * self.dx
-    self.xh = np.arange(0, (self.npoints + 1)) * self.dx - self.dx / 2
+    # Independent coordinate on the regular grid
+    self.x = np.linspace(xmin, xmax, npoints)
     
-    # Add in the ghost cells
-    self.x = np.concatenate([[-2 * self.dx, -1 * self.dx], 
-                             self.x, 
-                             [self.npoints * self.dx, (self.npoints + 1) * self.dx]])
-    self.xh = np.concatenate([[-self.dx - self.dx / 2], 
-                              self.xh,
-                              [(self.npoints + 1) * self.dx - self.dx / 2]])
+    # Add the ghost cells
+    dxlo = self.x[1] - self.x[0]
+    dxhi = self.x[-1] - self.x[-2]
+    self.x = np.concatenate([[self.x[0] - 2 * dxlo, self.x[0] - dxlo], 
+                              self.x, 
+                             [self.x[-1] + dxhi, self.x[-1] + 2 * dxhi]])
     
+    # Independent coordinate on the half-step (staggered) grid
+    self.xh = 0.5 * (self.x[1:] + self.x[:-1])
+
     # Compute dx array (forward difference, x[i+1] - x[i])
     self.dx = self.x[1:] - self.x[:-1]
     self.dx = np.append(self.dx, self.dx[-1])
