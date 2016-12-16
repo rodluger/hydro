@@ -249,16 +249,16 @@ class SodCIP(object):
     '''
     
     # Left boundary: fixed
-    self.rho[0:IBEG] = 1
-    self.u[0:HBEG] = 0
-    self.p[0:IBEG] = 1
-    self.e[0:IBEG] = self.p[0] / (self.gamma - 1) / self.rho[0]
+    self.rho[0:self.IBEG] = 1
+    self.u[0:self.HBEG] = 0
+    self.p[0:self.IBEG] = 1
+    self.e[0:self.IBEG] = self.p[0] / (self.gamma - 1) / self.rho[0]
     
     # Right boundary: fixed
-    self.rho[IEND:] = 0.125
-    self.u[HEND:] = 0
-    self.p[IEND:] = 0.1
-    self.e[HEND:] = self.p[IEND] / (self.gamma - 1) / self.rho[IEND]
+    self.rho[self.IEND:] = 0.125
+    self.u[self.HEND:] = 0
+    self.p[self.IEND:] = 0.1
+    self.e[self.HEND:] = self.p[self.IEND] / (self.gamma - 1) / self.rho[self.IEND]
   
   def RhoCSL2(self):
     '''
