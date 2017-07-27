@@ -8,4 +8,5 @@ or ``python example_cip.py`` to run the CIP Sod shock tube example.
 [Erkaev et al. (2013)](http://adsabs.harvard.edu/abs/2013AsBio..13.1011E)  
 [Kuramoto et al. (2012)](http://adsabs.harvard.edu/abs/2013E%26PSL.375..312K)  
 [Yabe et al. (2001)](http://adsabs.harvard.edu/abs/2001MWRv..129..332Y)  
-[Yabe and Aoki (1991)](http://adsabs.harvard.edu/abs/1991CoPhC..66..219Y)
+[Yabe and Aoki (1991)](http://adsabs.harvard.edu/abs/1991CoPhC..66..219Y)  
+[Tian et al. (2005)](http://adsabs.harvard.edu/abs/2005Sci...308.1014T)
