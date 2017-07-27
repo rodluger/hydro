@@ -107,7 +107,7 @@ class SodCIP(object):
         
     # Plot initial state
     self.time = 0
-    self.fig, self.ax = pl.subplots(2, 2, figsize = (14, 10), sharex = True)
+    self.fig, self.ax = pl.subplots(2, 2, figsize = (12, 8), sharex = True)
     self.fig.subplots_adjust(hspace = 0.05)
     self.ax = self.ax.flatten()
     self.title = self.fig.suptitle('time = %.3f' % self.time, fontsize = 18)
@@ -143,7 +143,7 @@ class SodCIP(object):
     # Limits
     self.SetLimits()
 
-  def Animate(self, tend = 0.276, interval = 0, thin = 1):
+  def Animate(self, tend = 0.276, interval = 1, thin = 1):
     '''
     
     '''
