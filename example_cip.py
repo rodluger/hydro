@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-example_lf.py
--------------
+example_cip.py
+--------------
 
 '''
 
 from __future__ import division, print_function, absolute_import, unicode_literals
-from cip import SodCIP
+from cip import Sod, OneD
+import numpy as np
 
-cip = SodCIP(CSL2 = False)
-cip.Animate(thin = 10)
+# Users can run the Sod example...
+solver = Sod(CSL2 = False)
+solver.Animate(thin = 10)

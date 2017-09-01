@@ -10,9 +10,10 @@ from __future__ import division, print_function, absolute_import, unicode_litera
 import numpy as np
 import matplotlib.pyplot as pl
 import matplotlib.animation as animation
-from .sod import Sod
 
-class SodCIP(object):
+__all__ = ['OneD']
+
+class OneD(object):
   '''
   The density, pressure and specific internal energy are computed on a regular grid
   with two ghost cells on either end. The velocity is staggered on a half-index grid
@@ -29,60 +30,91 @@ class SodCIP(object):
   
   '''
   
-  def __init__(self, npoints = 200, xmin = 0, xmax = 2, dt = 0.001,
-               gamma = 1.4, a = 0.65, CSL2 = False, gridpower = 1):
+  def __init__(self, x, rho, u, p, dt = 0.001, gamma = 1.4, a = 0.65, CSL2 = False,
+               boundary_rho = ('float', 'float'), boundary_u = ('float', 'float'), 
+               boundary_p = ('float', 'float'), rholim = None, ulim = None, plim = None,
+               elim = None):
     '''
+    
+    :param x: The independent coordinate (length) array
+    :param rho: The density array
+    :param u: The velocity array
+    :param p: The pressure array
+    :param dt: The timestep (must be small enough to satisfy the CFL condition!)
+    :param gamma: The adiabatic index of the gas
+    :param a: A numerical viscosity tuning parameter
+    :param CSL2: Use the CSL2 scheme for the density?
+    :param boundary_rho: A tuple of boundary conditions (left and right) for the density. \
+           Each element should either be "float" or a value at which the density will be fixed.
+    :param boundary_u: A tuple of boundary conditions (left and right) for the velocity. \
+           Each element should either be "float" or a value at which the density will be fixed.
+    :param boundary_p: A tuple of boundary conditions (left and right) for the pressure. \
+           Each element should either be "float" or a value at which the density will be fixed.     
+    :param rholim: Plotting limits for the density
+    :param ulim: Plotting limits for the velocity
+    :param plim: Plotting limits for the pressure
+    :param elim: Plotting limits for the energy
     
     '''
     
-    # User
-    self.npoints = npoints
+    # User inputs
     self.dt = dt
-    self.xmin = xmin
-    self.xmax = xmax
     self.gamma = gamma
     self.a = a
     self.CSL2 = CSL2
-    self.gridpower = gridpower
+    self.boundary_rho = boundary_rho
+    self.boundary_u = boundary_u
+    self.boundary_p = boundary_p
+    self.rholim = rholim
+    self.ulim = ulim
+    self.plim = plim
+    self.elim = elim
+    
+    # Initial mass & energy
+    self.mass0 = 0
+    self.energy0 = 0
+    
+    # Position, density, velocity, and pressure grids
+    self.x = x
+    self.rho = rho
+    self.u = u
+    self.p = p
+    self.npoints = len(self.x)
 
-    # Regular step bounds
+    # Regular step bounds w/ two ghost cells
     self.IBEG = 2
     self.IEND = self.IBEG + self.npoints
     self.ITOT = self.IEND + 2
 
-    # Half step bounds
+    # Half step bounds w/ one ghost cell
     self.HBEG = 1
     self.HEND = self.HBEG + 1 + self.npoints
     self.HTOT = self.HEND + 1
     
-    # Independent coordinate on the regular grid
-    self.x = np.linspace(xmin ** self.gridpower, xmax ** self.gridpower, npoints) ** (1. / self.gridpower)
-
-    # Add the ghost cells
+    # Add the ghost cells to the independent coordinate by linear extrapolation
     dxlo = self.x[1] - self.x[0]
     dxhi = self.x[-1] - self.x[-2]
     self.x = np.concatenate([[self.x[0] - 2 * dxlo, self.x[0] - dxlo], 
                               self.x, 
                              [self.x[-1] + dxhi, self.x[-1] + 2 * dxhi]])
     
-    # Independent coordinate on the half-step (staggered) grid
+    # Compute the independent coordinate on the half-step (staggered) grid
     self.xh = 0.5 * (self.x[1:] + self.x[:-1])
+    
+    # Append the ghost cells to the dependent variables
+    self.rho = np.concatenate([[self.rho[0], self.rho[0]], self.rho, [self.rho[-1], self.rho[-1]]])
+    self.p = np.concatenate([[self.p[0], self.p[0]], self.p, [self.p[-1], self.p[-1]]])
+    self.u = np.concatenate([[self.u[0]], self.u, [self.u[-1]]])
+
+    # Compute the energy array
+    self.e = self.p / (self.gamma - 1) / self.rho 
     
     # Compute dx array (forward difference, x[i+1] - x[i])
     self.dx = self.x[1:] - self.x[:-1]
     self.dx = np.append(self.dx, self.dx[-1])
     self.dxh = self.xh[1:] - self.xh[:-1]
     self.dxh = np.append(self.dxh, self.dxh[-1])
-    
-    # Initial profiles for the Sod shock tube
-    # Midpoint index
-    midpt = np.argmin(np.abs(self.x - 0.5 * (xmax - xmin)))
-    self.rho = np.ones(self.ITOT); self.rho[midpt:] = 0.125
-    self.u = np.zeros(self.HTOT)
-    self.p = np.ones(self.ITOT); self.p[midpt:] = 0.1
-    # NOTE: Division by rho in line below missing in Yabe & Aoki (1991)
-    self.e = self.p / (self.gamma - 1) / self.rho 
-  
+
     # Set boundary conditions
     self.Boundary()
     
@@ -99,7 +131,25 @@ class SodCIP(object):
                                              self.dx[self.IBEG-1:self.IEND]
       self.eta[0] = self.eta[1]
       self.eta[-1] = self.eta[-2]
-      
+  
+  @property
+  def energy(self):
+    '''
+    The total energy in the system
+    
+    '''
+    
+    return np.sum(self.e[self.IBEG:self.IEND])
+  
+  @property
+  def mass(self):
+    '''
+    The total mass in the system
+    
+    '''
+    
+    return np.trapz(self.rho[self.IBEG:self.IEND], x = self.x[self.IBEG:self.IEND])
+     
   def InitPlot(self):
     '''
     
@@ -123,14 +173,7 @@ class SodCIP(object):
     self.ghost_p, = self.ax[1].plot(np.append(self.x[:self.IBEG], self.x[self.IEND:]), np.append(self.p[:self.IBEG], self.p[self.IEND:]), 'b.')
     self.ghost_u, = self.ax[2].plot(np.append(self.xh[:self.HBEG], self.xh[self.HEND:]), np.append(self.u[:self.HBEG], self.u[self.HEND:]), 'b.')
     self.ghost_e, = self.ax[3].plot(np.append(self.x[:self.IBEG], self.x[self.IEND:]), np.append(self.e[:self.IBEG], self.e[self.IEND:]), 'b.')
-    
-    # Analytic solution
-    self.xa, self.rhoa, self.pa, self.ua, self.ea = Sod(self.time)
-    self.analytic_rho, = self.ax[0].plot(self.xa, self.rhoa, 'r-', label = 'Analytic')
-    self.analytic_p, = self.ax[1].plot(self.xa, self.pa, 'r-')
-    self.analytic_u, = self.ax[2].plot(self.xa, self.ua, 'r-')
-    self.analytic_e, = self.ax[3].plot(self.xa, self.ea, 'r-')
-    
+        
     # Labels
     self.ax[0].set_ylabel('Density', fontsize = 14)
     self.ax[1].set_ylabel('Pressure', fontsize = 14)
@@ -140,15 +183,21 @@ class SodCIP(object):
     self.ax[3].set_xlabel('Distance', fontsize = 14)
     self.ax[0].legend(loc = 'upper right')
     
+    # Conserved quantities
+    self.mass_label = self.ax[0].annotate('Mass error: %.5f' % 0, xy = (0.02,0.975), xycoords = 'axes fraction', ha = 'left', va = 'top')
+    self.energy_label = self.ax[3].annotate('Energy error: %.5f' % 0, xy = (0.02,0.975), xycoords = 'axes fraction', ha = 'left', va = 'top')
+    
     # Limits
-    self.SetLimits()
-
+    self.ax[0].set_ylim(self.rholim)
+    self.ax[1].set_ylim(self.plim)
+    self.ax[2].set_ylim(self.ulim)
+    self.ax[3].set_ylim(self.elim)
+    
   def Animate(self, tend = 0.276, interval = 1, thin = 1):
     '''
     
     '''
     
-    assert tend <= 0.5, "The Sod shock tube solution is only valid up to t = 0.5"
     self.thin = thin
     self.tend = tend
     self.InitPlot()
@@ -168,6 +217,11 @@ class SodCIP(object):
     # Take a step
     self.Step(self.thin)
     
+    # Initial quantities
+    if self.mass0 == 0:
+      self.mass0 = self.mass
+      self.energy0 = self.energy
+    
     # Main curves
     self.title.set_text('time = %.3f' % self.time)
     self.curve_rho.set_ydata(self.rho[self.IBEG:self.IEND])
@@ -181,33 +235,19 @@ class SodCIP(object):
     self.ghost_u.set_ydata(np.append(self.u[:self.HBEG], self.u[self.HEND:]))
     self.ghost_e.set_ydata(np.append(self.e[:self.IBEG], self.e[self.IEND:]))
     
-    # Analytic solution
-    self.xa, self.rhoa, self.pa, self.ua, self.ea = Sod(self.time)
-    self.analytic_rho.set_ydata(self.rhoa)
-    self.analytic_p.set_ydata(self.pa)
-    self.analytic_u.set_ydata(self.ua)
-    self.analytic_e.set_ydata(self.ea)
+    # Conserved quantities
+    self.mass_label.set_text('Mass error: %.5f' % ((self.mass - self.mass0) / self.mass0))
+    self.energy_label.set_text('Energy error: %.5f' % ((self.energy - self.energy0) / self.energy0))
     
-    # Set plot limits
-    self.SetLimits()
-    
+    # Limits
+    self.ax[0].set_ylim(self.rholim)
+    self.ax[1].set_ylim(self.plim)
+    self.ax[2].set_ylim(self.ulim)
+    self.ax[3].set_ylim(self.elim)
+        
     return self.curve_rho, self.curve_p, self.curve_u, self.curve_e, \
            self.ghost_rho, self.ghost_p, self.ghost_u, self.ghost_e
-  
-  def SetLimits(self):
-    '''
     
-    '''
-
-    self.ax[0].margins(0.05, None)
-    
-    for ax, var in zip([self.ax[0], self.ax[1], self.ax[2], self.ax[3]], 
-                       [self.rhoa, self.pa, self.ua, self.ea]):
-      vmin = var.min()
-      vmax = var.max()
-      vpad = max(0.2, 0.2 * (vmax - vmin))
-      ax.set_ylim(vmin - vpad, vmax + vpad)
-  
   def Step(self, nsteps = 1):
     '''
     
@@ -249,16 +289,42 @@ class SodCIP(object):
     
     '''
     
-    # Left boundary: float
-    self.rho[0:self.IBEG] = self.rho[self.IBEG]
-    self.u[0:self.HBEG] = 0
-    self.p[0:self.IBEG] = self.p[self.IBEG]
+    # Left boundary: floating or fixed?
+    if self.boundary_rho[0] == 'float':
+        self.rho[0:self.IBEG] = self.rho[self.IBEG]
+    else:
+        self.rho[0:self.IBEG] = self.boundary_rho[0]
+    
+    if self.boundary_u[0] == 'float':
+        self.u[0:self.HBEG] = 0
+    else:
+        self.u[0:self.IBEG] = self.boundary_u[0]
+    
+    if self.boundary_p[0] == 'float':
+        self.p[0:self.IBEG] = self.p[self.IBEG]
+    else:
+        self.p[0:self.IBEG] = self.boundary_p[0]
+    
+    # Compute the energy    
     self.e[0:self.IBEG] = self.p[0] / (self.gamma - 1) / self.rho[0]
     
-    # Right boundary: float
-    self.rho[self.IEND:] = self.rho[self.IEND-1]
-    self.u[self.HEND:] = 0
-    self.p[self.IEND:] = self.p[self.IEND-1]
+    # Right boundary: floating or fixed?
+    if self.boundary_rho[1] == 'float':
+        self.rho[self.IEND:] = self.rho[self.IEND-1]
+    else:
+        self.rho[self.IEND:] = self.boundary_rho[-1]
+        
+    if self.boundary_u[1] == 'float':
+        self.u[self.HEND:] = 0
+    else:
+        self.u[self.HEND:] = self.boundary_u[-1]
+        
+    if self.boundary_p[1] == 'float':
+        self.p[self.IEND:] = self.p[self.IEND-1]
+    else:
+        self.p[self.IEND:] = self.boundary_p[-1]
+        
+    # Compute the energy 
     self.e[self.HEND:] = self.p[self.IEND] / (self.gamma - 1) / self.rho[self.IEND]
   
   def RhoCSL2(self):
