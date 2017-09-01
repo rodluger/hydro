@@ -7,7 +7,7 @@ example_cip.py
 '''
 
 from __future__ import division, print_function, absolute_import, unicode_literals
-from cip import Sod, OneD
+from cip import Sod
 import numpy as np
 
 # Users can run the Sod example...

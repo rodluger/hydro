@@ -7,7 +7,7 @@ sod.py
 '''
 
 from __future__ import division, print_function, absolute_import, unicode_literals
-from .solvers import OneD
+from .solvers import Cartesian
 import numpy as np
 import scipy
 from scipy.optimize import fsolve
@@ -260,7 +260,7 @@ class _analytic(object):
 
     return positions, regions, val_dict
 
-class Sod(OneD):
+class Sod(Cartesian):
   '''
   The classical Sod shock tube problem.
   

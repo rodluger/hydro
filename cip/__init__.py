@@ -2,5 +2,5 @@
 # -*- coding: utf-8 -*-
 
 from . import sod, solvers
-from .solvers import OneD
+from .solvers import Cartesian, Spherical
 from .sod import Sod

@@ -11,9 +11,9 @@ import numpy as np
 import matplotlib.pyplot as pl
 import matplotlib.animation as animation
 
-__all__ = ['OneD']
+__all__ = ['Cartesian', 'Spherical']
 
-class OneD(object):
+class Cartesian(object):
   '''
   The density, pressure and specific internal energy are computed on a regular grid
   with two ghost cells on either end. The velocity is staggered on a half-index grid
@@ -532,3 +532,15 @@ class OneD(object):
       return np.zeros_like(self.p)
     else:
       return visc
+
+class Spherical(object):
+  '''
+  
+  '''
+  
+  def __init__(self):
+    '''
+    
+    '''
+    
+    pass
