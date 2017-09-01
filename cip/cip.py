@@ -148,6 +148,7 @@ class SodCIP(object):
     
     '''
     
+    assert tend <= 0.5, "The Sod shock tube solution is only valid up to t = 0.5"
     self.thin = thin
     self.tend = tend
     self.InitPlot()
