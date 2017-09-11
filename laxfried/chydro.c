@@ -11,8 +11,8 @@
 int fiHydro(SYSTEM SYS, PLANET EARTH, OUTPUT *OUT){
   
   // Calculate some things
-  EARTH.dBeta = (BIGG*MH*EARTH.dMass/(EARTH.dR0*KBOLTZ*EARTH.dT0));
-  EARTH.dQA = EARTH.dSigXUV*EARTH.dN0*EARTH.dR0;
+  EARTH.dBeta = (BIGG*MH*EARTH.dMass/(EARTH.dR0*KBOLTZ*EARTH.dT0)); // Jeans' parameter?
+  EARTH.dQA = EARTH.dSigXUV*EARTH.dN0*EARTH.dR0;                    // SigXUV: cross section? N0: density, 
   EARTH.dQB = (EARTH.dEpsXUV*EARTH.dFXUV*EARTH.dSigXUV*EARTH.dR0/(MH*pow(KBOLTZ*EARTH.dT0/MH,1.5)));
 
   // State variables
@@ -33,7 +33,9 @@ int fiHydro(SYSTEM SYS, PLANET EARTH, OUTPUT *OUT){
   // Initialize state variables
   for(i=0;i<SYS.iNGrid;i++){
     daR[i] = fdInitR(i,&SYS);
-    daRho[i] = fdInitRho(daR[i],EARTH.dBeta);
+    // Isothermal density
+    daRho[i] = double fdInitRho(EARTH.dT0, EARTH.dMass, EARTH.dR0, daR[i], EARTH.dN0);//fdInitRho(daR[i],EARTH.dBeta);
+
     daV[i] = fdInitV(daR[i]);
     daT[i] = fdInitT(daR[i]);
     daQ[i] = 0;

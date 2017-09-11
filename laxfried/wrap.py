@@ -29,7 +29,8 @@ KBOLTZ = 1.381e-16
 BIGG = 6.672e-8
 MEARTH = 5.9742e27
 REARTH = 6.3781e8
-XUVEARTH = 4.64
+XUVEARTH = 0
+#XUVEARTH = 4.64
 
 class PLANET(ctypes.Structure):
   '''
@@ -125,7 +126,8 @@ class Hydro(object):
     self.gamma = kwargs.get('gamma', 5. / 3.)
     self.xuv_efficiency = kwargs.get('xuv_efficiency', 0.15)
     self.xuv_cross_section = kwargs.get('xuv_cross_section', 1.0e-18)
-    self.xuv_flux = kwargs.get('xuv_flux', 100.)
+    #self.xuv_flux = kwargs.get('xuv_flux', 100.)
+    self.xuv_flux = kwargs.get('xuv_flux', 0)
     self.n0 = kwargs.get('n0', 5.0e12)
     
     # System params

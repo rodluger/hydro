@@ -5,7 +5,8 @@
 #define BIGG          6.672e-8
 #define MEARTH        5.9742e27
 #define REARTH        6.3781e8
-#define XUVEARTH      4.64
+#define XUVEARTH      0
+//#define XUVEARTH      4.64
 
 typedef struct {
   double dMass;
@@ -62,7 +63,9 @@ double fdLiang(double x);
 double fdMinMod(double x);
 double fdG(double x, double Cr);
 double fdInitR(double i, SYSTEM *SYS);
-double fdInitRho(double dR, double dBeta);
+
+double fdInitRho(double dT0, double dMass, double dR0, double dR, double dN0);
+//double fdInitRho(double dR, double dBeta);
 double fdInitV(double dR);
 double fdInitT(double dR);
 void fvLaxFriedrichs(double dDt, double *daR, SYSTEM *SYS, PLANET *EARTH, double U_CURR[3][SYS->iNGrid], double G_CURR[3][SYS->iNGrid], double Q_CURR[3][SYS->iNGrid], double U_NEXT[3][SYS->iNGrid]);
