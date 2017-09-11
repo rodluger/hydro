@@ -89,14 +89,19 @@ double fdInitR(double i, SYSTEM *SYS){
   return pow(SYS->dRMax,pow(((double)i/(double)(SYS->iNGrid-1)),SYS->dGridPower));
 }
 
-double fdInitRho(double dR, double dBeta){
-  return exp(dBeta*(-1+1/dR));
+//double fdInitRho(double dR, double dBeta){
+  //return exp(dBeta*(-1+1/dR));
+double fdInitRho(double dT0, double dMass, double dR0, double dR, double dN0) {
+  double sound_speed_sq = KBOLTZ*dT0/MH;
+  return MH*dN0*exp((-BIGG*dMass/sound_speed_sq)*(1.0/dR0-1.0/dR));
 }
 
+// can have an initial velocity
 double fdInitV(double dR){
   return 0.01*(dR-1);
 }
 
+// starts with the same temperature?
 double fdInitT(double dR){
   return 1.;
 }
