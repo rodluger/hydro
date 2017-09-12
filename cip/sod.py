@@ -7,9 +7,8 @@ sod.py
 '''
 
 from __future__ import division, print_function, absolute_import, unicode_literals
-#import sys
-#sys.path.append('/Users/renata/Desktop/hydro/cip/')
-from .solvers import Cartesian
+#from .solvers import Cartesian
+from .solvers import Spherical
 import numpy as np
 import scipy
 from scipy.optimize import fsolve
@@ -262,7 +261,7 @@ class _analytic(object):
 
     return positions, regions, val_dict
 
-class Sod(Cartesian):
+class Sod(Spherical):
   '''
   The classical Sod shock tube problem.
   

@@ -962,8 +962,8 @@ class Spherical(object):
 		
 		drhodt = np.zeros_like(self.rho)
 		drhodt[self.IBEG:self.IEND] = -(self.rho[self.IBEG:self.IEND] * 
-																	 (self.u[self.HBEG+1:self.HEND] * np.square(self.xh[self.HBEG+1:self.HEND]) - \
-																	 self.u[self.HBEG:self.HEND-1] * np.square(self.xh[self.HBEG:self.HEND-1])) / \
+																	 (self.u[self.HBEG+1:self.HEND] * self.xh[self.HBEG+1:self.HEND]**2.0 - \
+																	 self.u[self.HBEG:self.HEND-1] * self.xh[self.HBEG:self.HEND-1]**2.0) / \
 																	 self.dxh[self.HBEG:self.HEND-1])
 		return self.rho + self.dt * drhodt
 
@@ -985,15 +985,17 @@ class Spherical(object):
 		'''
 		
 		dedt = np.zeros_like(self.p)
-		dedt[self.IBEG:self.IEND] = -self.p[self.IBEG:self.IEND] / \
-																 (self.rho[self.IBEG:self.IEND]*np.square(self.x[self.IBEG:self.IEND])) * \
-																 ((self.ustar[self.HBEG+1:self.HEND] +
-																 self.u[self.HBEG+1:self.HEND]) *
-																 np.square(self.xh[self.HBEG+1:self.HEND]) -
-																 (self.ustar[self.HBEG:self.HEND-1] + 
-																 self.u[self.HBEG:self.HEND-1]) * 
-																 np.square(self.xh[self.HBEG:self.HEND-1])) / \
-																 (2 * self.dxh[self.HBEG:self.HEND-1])
+
+		
+		
+		dedt[self.IBEG:self.IEND] = -self.p[self.IBEG:self.IEND]/ \
+																(self.rho[self.IBEG:self.IEND]*self.x[self.IBEG:self.IEND]**2) * \
+																((self.ustar[self.HBEG+1:self.HEND]+self.u[self.HBEG+1:self.HEND]) *
+																self.xh[self.HBEG+1:self.HEND]**2 -
+																(self.ustar[self.HBEG:self.HEND-1]+self.u[self.HBEG:self.HEND-1]) *
+																self.xh[self.HBEG:self.HEND-1]**2) / \
+																(2.0*(self.xh[self.HBEG+1:self.HEND]-self.xh[self.HBEG:self.HEND-1]))
+		
 		return self.e + self.dt * dedt
 	
 	def CIP0(self, f, fprime, half = False):
@@ -1046,7 +1048,8 @@ class Spherical(object):
 		'''
 
 		visc = np.zeros_like(self.rho)
-		du = (self.u[self.HBEG+1:self.HEND] - self.u[self.HBEG:self.HEND-1])
+		du = (self.u[self.HBEG+1:self.HEND]*self.xh[self.HBEG+1:self.HEND]**2.0 - \
+		self.u[self.HBEG:self.HEND-1]*self.xh[self.HBEG:self.HEND-1]**2.0)
 		c = np.sqrt(self.gamma * self.p / self.rho)[self.IBEG:self.IEND]
 		visc[self.IBEG:self.IEND] =  np.where(du < 0,
 																	self.a * (-self.rho[self.IBEG:self.IEND] * c * du + 
