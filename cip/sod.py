@@ -7,7 +7,9 @@ sod.py
 '''
 
 from __future__ import division, print_function, absolute_import, unicode_literals
-from .solvers import Cartesian
+#import sys
+#sys.path.append('/Users/renata/Desktop/hydro/cip/')
+from solvers import Cartesian
 import numpy as np
 import scipy
 from scipy.optimize import fsolve
