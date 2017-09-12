@@ -1046,7 +1046,7 @@ class Spherical(object):
     drh = self.drh[self.HBEG:self.HEND-1]
     
     # This is the third term in the G vector at the bottom of page 229
-    dedt[self.IBEG:self.IEND] = -(p / (rho * r ** 2)) * (rhp * (ustarp + up) - rhm * (ustarm + um)) / (2 * drh)
+    dedt[self.IBEG:self.IEND] = -(p / (rho * r ** 2)) * (rhp ** 2 * (ustarp + up) - rhm ** 2 * (ustarm + um)) / (2 * drh)
     
     return self.e + self.dt * dedt
   
