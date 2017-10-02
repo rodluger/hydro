@@ -14,7 +14,7 @@ BIGG = 6.67e-8
 MPLANET = 5.974e27
 
 # Settings
-dt = 0.000001
+dt = 0.00001
 gamma = 1.4
 a = 0.5
 tend = 0.5
@@ -27,7 +27,7 @@ boundary_p = ('float', 'float')
 
 # Plotting bounds
 rholim = (0, 1.25)
-ulim = (-0.25, 1.25)
+ulim = (-1.25, 1.25)
 plim = (0, 1.25)
 elim = (1, 4)
 

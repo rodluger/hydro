@@ -108,12 +108,14 @@ class Spherical(object):
 		self.u = np.concatenate([[self.u[0]], self.u, [self.u[-1]]])
 
 		# Compute the energy array
-		#self.e = self.p / (self.gamma - 1) / self.rho 
+		self.e = self.p / (self.gamma - 1) / self.rho 
 
+		# go back to this later, ignore for now
 		u_i = np.concatenate([[self.u[0]],self.u,[self.u[-1]]])
 		u_i = (u_i[:-1]+u_i[1:])/2.0
 
-		self.e = self.rho*(u_i**2.0/2.0+self.p/(self.rho*(self.gamma-1.0))) # total energy
+		# total energy from Kuramoto: including the kinetic energy term
+		#self.e = self.rho*(u_i**2.0/2.0+self.p/(self.rho*(self.gamma-1.0))) # total energy
 
 		# Compute dx array (forward difference, x[i+1] - x[i])
 		self.dr = self.r[1:] - self.r[:-1]
@@ -129,6 +131,7 @@ class Spherical(object):
 		self.uprime = np.gradient(self.u, self.drh)
 		self.eprime = np.gradient(self.e, self.dr)
 		
+		# CSL2 not implemented right now
 		# Compute initial density integral: Equation (19) in Yabe et al. (2001)
 		if self.CSL2:
 			self.eta = np.zeros(self.HTOT)
@@ -268,7 +271,7 @@ class Spherical(object):
 			self.q = self.NumVisc()
 
 			# NOTE: Multiplication by rho in line below missing in Yabe & Aoki (1991)
-			#self.p = (self.gamma - 1) * self.rho * self.e + self.q 
+			self.p = (self.gamma - 1) * self.rho * self.e + self.q 
 
 			# total energy, not specific internal energy
 			# first, calculate u values on the regular grid
@@ -276,7 +279,8 @@ class Spherical(object):
 			u_i = np.concatenate([[self.u[0]],self.u,[self.u[-1]]])
 			u_i = (u_i[:-1]+u_i[1:])/2.0
 
-			self.p = (self.e - self.rho*u_i**2.0/2.0)*(self.gamma-1.0)
+			# depending on what you use for energy, turned off for now
+			#self.p = (self.e - self.rho*u_i**2.0/2.0)*(self.gamma-1.0)
 
 			if not self.CSL2:
 				self.rhostar = self.RhoStar()
@@ -296,7 +300,7 @@ class Spherical(object):
 				self.rho, self.eta = self.RhoCSL2()
 			self.e, self.eprime = self.CIP0(self.estar, self.eprimestar)
 			self.u, self.uprime = self.CIP0(self.ustar, self.uprimestar, half = True)
- 
+ 			#self.e, self.eprime = self.CIP0(self.estar, self.eprimestar)
 			# Advance
 			self.time += self.dt
 	
@@ -341,13 +345,14 @@ class Spherical(object):
 				self.p[self.IEND:] = self.boundary_p[-1]
 				
 		# Compute the energy 
-		#self.e[self.IEND:] = self.p[self.IEND] / (self.gamma - 1) / self.rho[self.IEND]
+		self.e[self.IEND:] = self.p[self.IEND] / (self.gamma - 1) / self.rho[self.IEND]
 
 		# total energy instead of specific internal energy
 		u_i = np.concatenate([[self.u[0]],self.u,[self.u[-1]]])
 		u_i = (u_i[:-1]+u_i[1:])/2.0
 
-		self.e[self.IEND:] = (self.e[self.IEND] - self.rho[self.IEND]*u_i[self.IEND]**2.0/2.0)*(self.gamma-1.0)
+
+		#self.e[self.IEND:] = (self.e[self.IEND] - self.rho[self.IEND]*u_i[self.IEND]**2.0/2.0)*(self.gamma-1.0)
 	def RhoCSL2(self):
 		'''
 		The notation is quite confusing here. Yabe et al. (2001) use `rho` to designate the
@@ -355,7 +360,7 @@ class Spherical(object):
 		the time evolution of the density, I'm calling the integral of this quantity `eta`.
 		
 		'''
-				
+		raise NotImplementedError("Not yet implemented!")				
 		# NOTE: It is unclear from Yabe et al. (2001) how xi should be calculated
 		# NOTE: Might want to use `ustar` rather than `u`. Not sure. Either method seems to work.
 		uav = 0.5 * (self.u[self.HBEG+1:self.HEND] + self.u[self.HBEG:self.HEND-1])
@@ -478,7 +483,7 @@ class Spherical(object):
 																	 self.x[self.IBEG:self.IEND]**2 * \
 																	 (self.u[self.HBEG+1:self.HEND] * self.xh[self.HBEG+1:self.HEND]**2.0 - \
 																	 self.u[self.HBEG:self.HEND-1] * self.xh[self.HBEG:self.HEND-1]**2.0) / \
-		 													 		 self.dxh[self.HBEG:self.HEND-1])
+																	 self.dxh[self.HBEG:self.HEND-1])
 		'''
 
 		return self.rho + self.dt * drhodt
@@ -492,9 +497,11 @@ class Spherical(object):
 		hbeg = self.HBEG
 		hend = self.HEND
 
+		# bounds here don't match with Rodrigo's code: check this
 		dudt = np.zeros_like(self.u)
 		term1 = -2.0/(self.rho[ibeg-1:iend]+self.rho[ibeg:iend+1])*(self.p[ibeg:iend+1]-self.p[ibeg-1:iend])/self.dr[ibeg-1:iend]
 		term2 = -BIGG*MPLANET/self.rh[hbeg:hend]
+		# ignore term2 for now
 		dudt[hbeg:hend] = term1# + term2
 
 		'''
@@ -508,7 +515,6 @@ class Spherical(object):
 	def EStar(self):
 		'''
 		
-		'''
 		ibeg = self.IBEG
 		iend = self.IEND
 		hbeg = self.HBEG
@@ -524,9 +530,10 @@ class Spherical(object):
 		term3 = self.rho[ibeg:iend]*u_i[ibeg:iend]**2.0/2.0+self.p[ibeg:iend]*self.gamma/(self.gamma-1.0)
 		term4 = -u_i[ibeg:iend]*(self.p[ibeg+1:iend+1]-self.p[ibeg:iend])/self.dr[ibeg:iend]
 		term5 = -self.rho[ibeg:iend]*u_i[ibeg:iend]*BIGG*MPLANET/self.r[ibeg:iend]
+		'''
 		# heating term: q
 		# conduction term with kappa and temperature gradient add later
-		dedt[ibeg:iend] = term1*term2*term3*term4#*term5
+		#dedt[ibeg:iend] = term1*term2*term3*term4#*term5
 		'''
 		dedt[self.IBEG:self.IEND] = -self.p[self.IBEG:self.IEND]/ \
 																(self.rho[self.IBEG:self.IEND]*self.x[self.IBEG:self.IEND]**2) * \
@@ -536,7 +543,35 @@ class Spherical(object):
 																self.xh[self.HBEG:self.HEND-1]**2) / \
 																(2.0*(self.xh[self.HBEG+1:self.HEND]-self.xh[self.HBEG:self.HEND-1]))
 		'''
+		dedt = np.zeros_like(self.p)
+	
+		# Pressure and density
+		p = self.p[self.IBEG:self.IEND]
+		rho = self.rho[self.IBEG:self.IEND]
+		
+		# Radius
+		r = self.r[self.IBEG:self.IEND]
+		
+		# Velocity* above and below
+		ustarp = self.ustar[self.HBEG+1:self.HEND]
+		ustarm = self.ustar[self.HBEG:self.HEND-1]
+		
+		# Velocity above and below
+		up = self.u[self.HBEG+1:self.HEND]
+		um = self.u[self.HBEG:self.HEND-1]
+		
+		# Radius above and below (half step)
+		rhp = self.rh[self.HBEG+1:self.HEND]
+		rhm = self.rh[self.HBEG:self.HEND-1]
+		
+		# Delta r (half step)
+		drh = self.drh[self.HBEG:self.HEND-1]
+		
+		# This is the third term in the G vector at the bottom of page 229
+		dedt[self.IBEG:self.IEND] = -(p / (rho * r ** 2)) * (rhp ** 2 * (ustarp + up) - rhm ** 2 * (ustarm + um)) / (2 * drh)
+		
 		return self.e + self.dt * dedt
+
 	
 	def CIP0(self, f, fprime, half = False):
 		'''
