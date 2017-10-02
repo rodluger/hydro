@@ -8,7 +8,8 @@ sod.py
 
 from __future__ import division, print_function, absolute_import, unicode_literals
 #from .solvers import Cartesian
-from .solvers import Spherical
+#from .solvers import Spherical
+from .solvers_spherical import Spherical
 import numpy as np
 import scipy
 from scipy.optimize import fsolve
@@ -267,7 +268,7 @@ class Sod(Spherical):
   
   '''
   
-  def __init__(self, npoints = 200, xmin = 0, xmax = 2, gridpower = 1, **kwargs):
+  def __init__(self, npoints = 200, xmin = 0.0001, xmax = 2, gridpower = 1, **kwargs):
     '''
     
     '''

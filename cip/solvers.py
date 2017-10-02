@@ -21,10 +21,10 @@ class Cartesian(object):
 	with four "real" grid points and five "real" half-grid points:
 
 	```
-									G     G                             G     G
+					G     G                             G     G
 	 REGULAR        0     1  |  2     3     4     5  |  6     7
 	 HALF              0  |  1     2     3     4     5  |  6
-										 G                                   G
+				       G                                   G
 
 	```
 	
@@ -961,7 +961,8 @@ class Spherical(object):
 		'''
 		
 		drhodt = np.zeros_like(self.rho)
-		drhodt[self.IBEG:self.IEND] = -(self.rho[self.IBEG:self.IEND] * 
+		drhodt[self.IBEG:self.IEND] = -(self.rho[self.IBEG:self.IEND] / \
+																	 self.x[self.IBEG:self.IEND]**2 * \
 																	 (self.u[self.HBEG+1:self.HEND] * self.xh[self.HBEG+1:self.HEND]**2.0 - \
 																	 self.u[self.HBEG:self.HEND-1] * self.xh[self.HBEG:self.HEND-1]**2.0) / \
 																	 self.dxh[self.HBEG:self.HEND-1])
